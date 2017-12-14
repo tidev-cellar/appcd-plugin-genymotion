@@ -18,12 +18,6 @@
   },
   "dependencies": {
     "androidlib": "^2.1.0",
-    "appcd-detect": "^1.0.0",
-    "appcd-dispatcher": "^1.0.0",
-    "appcd-fs": "^1.0.0",
-    "appcd-path": "^1.0.0",
-    "appcd-subprocess": "^1.0.0",
-    "appcd-util": "^1.0.0",
     "gawk": "^4.4.4",
     "source-map-support": "^0.5.0",
     "xmldom": "^0.1.27"
@@ -38,7 +32,8 @@
     "type": "git",
     "url": "git+https://github.com/appcelerator/appc-daemon.git"
   },
-  "appcd-plugin": {
+  "appcd": {
+    "appcdVersion": "1.x",
     "config": "./conf/config.js",
     "name": "genymotion",
     "type": "external"
