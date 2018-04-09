@@ -17,13 +17,13 @@
     "test": "gulp test"
   },
   "dependencies": {
-    "androidlib": "^2.3.3",
+    "androidlib": "^2.3.4",
     "gawk": "^4.4.5",
     "source-map-support": "^0.5.4",
     "xmldom": "^0.1.27"
   },
   "devDependencies": {
-    "appcd-gulp": "^1.0.1",
+    "appcd-gulp": "^1.1.2",
     "gulp": "^3.9.1"
   },
   "homepage": "https://github.com/appcelerator/appcd-plugin-genymotion#readme",
