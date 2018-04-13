@@ -69,33 +69,25 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 		});
 
 		const refreshVirtualBoxEmulators = () => {
-			const emulators = this.virtualbox.list();
-
-			gawk.set(
-				this.data.emulators,
-				emulators
-					.filter(vm => vm.props.genymotion_version)
-					.map(vm => new genymotion.GenymotionEmulator(vm))
-			);
-
-			const sids = this.subscriptions[VM_CONFIG] ? Object.keys(this.subscriptions[VM_CONFIG]) : [];
+			const vms = this.virtualbox.list();
 
 			this.watch({
-				type: VM_CONFIG,
-				paths: emulators.map(vm => path.join(vm.path, `${vm.name}.vbox`)),
+				type:     VM_CONFIG,
+				paths:    vms.map(vm => path.join(vm.path, `${vm.name}.vbox`)),
 				debounce: true,
-				handler: () => {
+				handler() {
 					console.log('A virtual machine config changed, rescanning genymotion emulators');
-					gawk.set(
-						this.data.emulators,
-						this.virtualbox.list()
-							.filter(vm => vm.props.genymotion_version)
-							.map(vm => new genymotion.GenymotionEmulator(vm))
-					);
+					refreshVirtualBoxEmulators();
 				}
 			});
 
-			this.unwatch(VM_CONFIG, sids);
+			const emulators = vms
+				.filter(vm => vm.props.genymotion_version)
+				.map(vm => new genymotion.GenymotionEmulator(vm));
+
+			gawk.set(this.data.emulators, emulators, (dest, src) => {
+				return dest && src && dest.path === src.path;
+			});
 		};
 
 		this.vboxEngine.on('results', vbox => {
@@ -108,7 +100,7 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 			type: VIRTUALBOX_CONFIG,
 			paths: [ vboxConfig ],
 			debounce: true,
-			handler: () => {
+			handler() {
 				console.log(`${vboxConfig} changed, rescanning genymotion emulators`);
 				refreshVirtualBoxEmulators();
 			}
@@ -168,8 +160,16 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 	 */
 	watch({ debounce, depth, handler, paths, type }) {
 		const callback = debounce ? debouncer(handler) : handler;
+		const sidsByPath = Object.assign({}, this.subscriptions[type]);
 
 		for (const path of paths) {
+			delete sidsByPath[path];
+
+			if (this.subscriptions[type] && this.subscriptions[type][path]) {
+				// already watching this path
+				continue;
+			}
+
 			const data = { path };
 			if (depth) {
 				data.recursive = true;
@@ -190,17 +190,27 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 								if (!this.subscriptions[type]) {
 									this.subscriptions[type] = {};
 								}
-								this.subscriptions[type][data.sid] = 1;
+								this.subscriptions[type][path] = data.sid;
 							} else if (data.type === 'event') {
 								callback(data.message);
 							}
 						})
 						.on('end', () => {
 							if (sid && this.subscriptions[type]) {
-								delete this.subscriptions[type][sid];
+								for (const path of Object.keys(this.subscriptions[type])) {
+									if (sid === this.subscriptions[type][path]) {
+										delete this.subscriptions[type][path];
+										break;
+									}
+								}
 							}
 						});
 				});
+		}
+
+		const sids = Object.values(sidsByPath);
+		if (sids.length) {
+			this.unwatch(type, sids);
 		}
 	}
 
@@ -217,20 +227,31 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 			return;
 		}
 
-		if (!sids) {
-			sids = Object.keys(this.subscriptions[type]);
-		}
+		if (sids) {
+			const sidToPath = {};
+			for (const [ path, sid ] of Object.entries(this.subscriptions[type])) {
+				sidToPath[sid] = path;
+			}
 
-		for (const sid of sids) {
-			await appcd.call('/appcd/fswatch', {
-				sid,
-				type: 'unsubscribe'
-			});
+			for (const sid of sids) {
+				await appcd.call('/appcd/fswatch', {
+					sid,
+					type: 'unsubscribe'
+				});
 
-			delete this.subscriptions[type][sid];
-		}
+				delete this.subscriptions[type][sidToPath[sid]];
+			}
 
-		if (!Object.keys(this.subscriptions[type]).length) {
+			if (!Object.keys(this.subscriptions[type]).length) {
+				delete this.subscriptions[type];
+			}
+		} else {
+			for (const sid of Object.values(this.subscriptions[type])) {
+				await appcd.call('/appcd/fswatch', {
+					sid,
+					type: 'unsubscribe'
+				});
+			}
 			delete this.subscriptions[type];
 		}
 	}
