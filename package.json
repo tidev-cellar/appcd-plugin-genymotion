@@ -1,0 +1,41 @@
+{
+  "name": "@appcd/plugin-genymotion",
+  "version": "1.2.0",
+  "description": "Genymotion and VirtualBox service for the Appc Daemon.",
+  "main": "./dist/index",
+  "author": "Appcelerator, Inc. <npmjs@appcelerator.com>",
+  "maintainers": [
+    "Chris Barber <cbarber@appcelerator.com>",
+    "Ewan Harris <eharris@axway.com>"
+  ],
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "gulp build",
+    "coverage": "gulp coverage",
+    "docs": "gulp docs",
+    "prepare": "gulp build",
+    "test": "gulp test"
+  },
+  "dependencies": {
+    "androidlib": "^2.4.0",
+    "gawk": "^4.6.2",
+    "source-map-support": "^0.5.10",
+    "xmldom": "^0.1.27"
+  },
+  "devDependencies": {
+    "appcd-gulp": "^2.0.1",
+    "gulp": "^4.0.0"
+  },
+  "homepage": "https://github.com/appcelerator/appc-daemon-plugins/tree/master/packages/appcd-plugin-genymotion",
+  "bugs": "https://github.com/appcelerator/appc-daemon-plugins/issues",
+  "repository": "https://github.com/appcelerator/appc-daemon-plugins",
+  "appcd": {
+    "appcdVersion": "1.x || 2.x",
+    "config": "./conf/config.js",
+    "name": "genymotion",
+    "type": "external"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
