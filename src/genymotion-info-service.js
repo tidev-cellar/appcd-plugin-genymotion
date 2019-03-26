@@ -2,7 +2,7 @@ import DetectEngine from 'appcd-detect';
 import gawk from 'gawk';
 import path from 'path';
 
-import { arrayify, debounce as debouncer, get } from 'appcd-util';
+import { arrayify, get } from 'appcd-util';
 import { DataServiceDispatcher } from 'appcd-dispatcher';
 import { exe } from 'appcd-subprocess';
 import { genymotion, virtualbox } from 'androidlib';
@@ -71,7 +71,7 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 		const refreshVirtualBoxEmulators = () => {
 			const vms = this.virtualbox.list();
 
-			this.watch({
+			appcd.fs.watch({
 				type:     VM_CONFIG,
 				paths:    vms.map(vm => path.join(vm.path, `${vm.name}.vbox`)),
 				debounce: true,
@@ -96,7 +96,7 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 		});
 
 		const vboxConfig = virtualbox.virtualBoxConfigFile[process.platform];
-		this.watch({
+		appcd.fs.watch({
 			type: VIRTUALBOX_CONFIG,
 			paths: [ vboxConfig ],
 			debounce: true,
@@ -148,115 +148,6 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 	}
 
 	/**
-	 * Subscribes to filesystem events for the specified paths.
-	 *
-	 * @param {Object} params - Various parameters.
-	 * @param {Boolean} [params.debounce=false] - When `true`, wraps the `handler` with a debouncer.
-	 * @param {Number} [params.depth] - The max depth to recursively watch.
-	 * @param {Function} params.handler - A callback function to fire when a fs event occurs.
-	 * @param {Array.<String>} params.paths - One or more paths to watch.
-	 * @param {String} params.type - The type of subscription.
-	 * @access private
-	 */
-	watch({ debounce, depth, handler, paths, type }) {
-		const callback = debounce ? debouncer(handler) : handler;
-		const sidsByPath = Object.assign({}, this.subscriptions[type]);
-
-		for (const path of paths) {
-			delete sidsByPath[path];
-
-			if (this.subscriptions[type] && this.subscriptions[type][path]) {
-				// already watching this path
-				continue;
-			}
-
-			const data = { path };
-			if (depth) {
-				data.recursive = true;
-				data.depth = depth;
-			}
-
-			appcd
-				.call('/appcd/fswatch', {
-					data,
-					type: 'subscribe'
-				})
-				.then(ctx => {
-					let sid;
-					ctx.response
-						.on('data', async (data) => {
-							if (data.type === 'subscribe') {
-								sid = data.sid;
-								if (!this.subscriptions[type]) {
-									this.subscriptions[type] = {};
-								}
-								this.subscriptions[type][path] = data.sid;
-							} else if (data.type === 'event') {
-								callback(data.message);
-							}
-						})
-						.on('end', () => {
-							if (sid && this.subscriptions[type]) {
-								for (const path of Object.keys(this.subscriptions[type])) {
-									if (sid === this.subscriptions[type][path]) {
-										delete this.subscriptions[type][path];
-										break;
-									}
-								}
-							}
-						});
-				});
-		}
-
-		const sids = Object.values(sidsByPath);
-		if (sids.length) {
-			this.unwatch(type, sids);
-		}
-	}
-
-	/**
-	 * Unsubscribes a list of filesystem watcher subscription ids.
-	 *
-	 * @param {Number} type - The type of subscription.
-	 * @param {Array.<String>} [sids] - An array of subscription ids to unsubscribe. If not
-	 * specified, defaults to all sids for the specified types.
-	 * @access private
-	 */
-	async unwatch(type, sids) {
-		if (!this.subscriptions[type]) {
-			return;
-		}
-
-		if (sids) {
-			const sidToPath = {};
-			for (const [ path, sid ] of Object.entries(this.subscriptions[type])) {
-				sidToPath[sid] = path;
-			}
-
-			for (const sid of sids) {
-				await appcd.call('/appcd/fswatch', {
-					sid,
-					type: 'unsubscribe'
-				});
-
-				delete this.subscriptions[type][sidToPath[sid]];
-			}
-
-			if (!Object.keys(this.subscriptions[type]).length) {
-				delete this.subscriptions[type];
-			}
-		} else {
-			for (const sid of Object.values(this.subscriptions[type])) {
-				await appcd.call('/appcd/fswatch', {
-					sid,
-					type: 'unsubscribe'
-				});
-			}
-			delete this.subscriptions[type];
-		}
-	}
-
-	/**
 	 * Stops the Genymotion-related environment watchers.
 	 *
 	 * @access public
@@ -274,7 +165,7 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 
 		if (this.subscriptions) {
 			for (const type of Object.keys(this.subscriptions)) {
-				await this.unwatch(type);
+				await appcd.fs.unwatch(type);
 			}
 		}
 
