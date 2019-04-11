@@ -1,25 +1,23 @@
 module.exports = {
-	android: {
-		genymotion: {
-			executables: {
-				/**
-				 * The path to the genymotion executable.
-				 * @type {String}
-				 */
-				genymotion: null,
-
-				/**
-				 * The path to the genymotion player executable.
-				 * @type {String}
-				 */
-				player: null
-			},
+	genymotion: {
+		executables: {
+			/**
+			 * The path to the genymotion executable.
+			 * @type {String}
+			 */
+			genymotion: null,
 
 			/**
-			 * A list of paths to search for Genymotion.
-			 * @type {Array.<String>}
+			 * The path to the genymotion player executable.
+			 * @type {String}
 			 */
-			searchPaths: null
-		}
+			player: null
+		},
+
+		/**
+		 * A list of paths to search for Genymotion.
+		 * @type {Array.<String>}
+		 */
+		searchPaths: null
 	}
 };
