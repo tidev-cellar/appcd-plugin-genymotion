@@ -8,12 +8,12 @@ The `info` service uses [genymotion.js](./src/genymotion.js) and [virtualbox.js]
 (./src/virtualbox.js) to detect the install Genymotion install and emulators, and Virtualbox install.
 
 ```js
-appcd.call('/genymotion/latest/info', ctx => {
-	console.log(ctx.response);
-});
+const { response } = await appcd.call('/genymotion/latest/info');
+console.log(response);
 ```
 
 ## Example response
+
 ```json
 {
     "home": "/Users/eharris/.Genymobile/Genymotion",
