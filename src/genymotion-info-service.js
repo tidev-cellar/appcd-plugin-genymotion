@@ -2,13 +2,12 @@ import DetectEngine from 'appcd-detect';
 import gawk from 'gawk';
 import path from 'path';
 
-import { arrayify, get } from 'appcd-util';
+import { arrayify, get, mergeDeep } from 'appcd-util';
 import { DataServiceDispatcher } from 'appcd-dispatcher';
 import { exe } from 'appcd-subprocess';
-import { genymotion, virtualbox } from 'androidlib';
+import * as androidlib from 'androidlib';
 
-const VIRTUALBOX_CONFIG = 1;
-const VM_CONFIG = 2;
+const { genymotion, virtualbox } = androidlib;
 
 /**
  * The Genymotion and VirtualBox info service.
@@ -22,6 +21,10 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 	 */
 	async activate(cfg) {
 		this.config = cfg;
+		if (cfg.android) {
+			mergeDeep(androidlib.options, cfg.android);
+		}
+		gawk.watch(cfg, 'android', () => mergeDeep(androidlib.options, cfg.android || {}));
 
 		this.virtualbox = null;
 
@@ -50,29 +53,30 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 				try {
 					return new virtualbox.VirtualBox(dir);
 				} catch (e) {
-					// Squelch
+					// 'dir' does not contain VirtualBox
 				}
 			},
-			depth:                1,
-			exe:                  `vboxmanage${exe}`,
-			multiple:             false,
-			name:                 'virtualbox',
-			paths:                virtualbox.virtualBoxLocations[process.platform],
-			redetect:             true,
-			refreshPathsInterval: 15000,
+			depth:    1,
+			exe:      `vboxmanage${exe}`,
+			multiple: false,
+			name:     'virtualbox',
+			paths: [
+				...arrayify(get(this.config, 'android.virtualbox.searchPaths'), true),
+				...virtualbox.virtualBoxLocations[process.platform]
+			],
+			redetect: true,
 			registryKeys: {
-				hive: 'HKLM',
-				key: 'Software\\Oracle\\VirtualBox',
+				key: 'HKLM\\Software\\Oracle\\VirtualBox',
 				name: 'InstallDir'
 			},
-			watch:                true
+			watch:    true
 		});
 
 		const refreshVirtualBoxEmulators = () => {
 			const vms = this.virtualbox.list();
 
 			appcd.fs.watch({
-				type:     VM_CONFIG,
+				type:     'vmconf',
 				paths:    vms.map(vm => path.join(vm.path, `${vm.name}.vbox`)),
 				debounce: true,
 				handler() {
@@ -95,18 +99,32 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 			refreshVirtualBoxEmulators();
 		});
 
-		const vboxConfig = virtualbox.virtualBoxConfigFile[process.platform];
-		appcd.fs.watch({
-			type: VIRTUALBOX_CONFIG,
-			paths: [ vboxConfig ],
-			debounce: true,
-			handler() {
-				console.log(`${vboxConfig} changed, rescanning genymotion emulators`);
-				refreshVirtualBoxEmulators();
-			}
-		});
-
 		await this.vboxEngine.start();
+
+		const watchConfig = async value => {
+			await appcd.fs.unwatch('vboxconf');
+
+			const vboxConfig = value || virtualbox.virtualBoxConfigFile[process.platform];
+			await appcd.fs.watch({
+				type: 'vboxconf',
+				paths: [ vboxConfig ],
+				debounce: true,
+				handler() {
+					console.log(`${vboxConfig} changed, rescanning genymotion emulators`);
+					refreshVirtualBoxEmulators();
+				}
+			});
+		};
+
+		await watchConfig(get(this.config, 'android.virtualbox.configFile'));
+		gawk.watch(this.config, [ 'android', 'virtualbox', 'configFile' ], watchConfig);
+
+		gawk.watch(this.config, [ 'android', 'virtualbox', 'searchPaths' ], value => {
+			this.vboxEngine.paths = [
+				...arrayify(value, true),
+				...virtualbox.virtualBoxLocations[process.platform]
+			];
+		});
 	}
 
 	/**
@@ -116,8 +134,6 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 	 * @access private
 	 */
 	async initGenymotion() {
-		const paths = arrayify(get(this.config, 'android.genymotion.searchPaths'), true).concat(genymotion.genymotionLocations[process.platform]);
-
 		this.genyEngine = new DetectEngine({
 			checkDir(dir) {
 				try {
@@ -130,7 +146,10 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 			exe:      `genymotion${exe}`,
 			multiple: false,
 			name:     'genymotion',
-			paths,
+			paths: [
+				...arrayify(get(this.config, 'android.genymotion.searchPaths'), true),
+				...genymotion.genymotionLocations[process.platform]
+			],
 			processResults: results => {
 				for (const r of results) {
 					r.virtualbox = this.virtualbox || {};
@@ -140,11 +159,16 @@ export default class GenymotionInfoService extends DataServiceDispatcher {
 			watch:    true
 		});
 
-		this.genyEngine.on('results', async (results) => {
-			gawk.set(this.data, results);
-		});
+		this.genyEngine.on('results', results => gawk.set(this.data, results));
 
 		await this.genyEngine.start();
+
+		gawk.watch(this.config, [ 'android', 'genymotion', 'searchPaths' ], value => {
+			this.genyEngine.paths = [
+				...arrayify(value, true),
+				...genymotion.genymotionLocations[process.platform]
+			];
+		});
 	}
 
 	/**
