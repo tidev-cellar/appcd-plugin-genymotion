@@ -18,17 +18,16 @@
   },
   "dependencies": {
     "androidlib": "^2.5.0",
-    "gawk": "^4.6.4",
-    "source-map-support": "^0.5.13",
+    "gawk": "^4.6.6",
+    "source-map-support": "^0.5.16",
     "xmldom": "^0.1.27"
   },
   "devDependencies": {
-    "appcd-gulp": "^2.2.0",
-    "gulp": "^4.0.2"
+    "appcd-gulp": "^2.3.0"
   },
-  "homepage": "https://github.com/appcelerator/appc-daemon-plugins/tree/master/packages/appcd-plugin-genymotion",
-  "bugs": "https://github.com/appcelerator/appc-daemon-plugins/issues",
-  "repository": "https://github.com/appcelerator/appc-daemon-plugins",
+  "homepage": "https://github.com/appcelerator/appc-daemon",
+  "bugs": "https://github.com/appcelerator/appcd-plugin-genymotion/issues",
+  "repository": "https://github.com/appcelerator/appcd-plugin-genymotion",
   "appcd": {
     "appcdVersion": "1.x || 2.x || 3.x",
     "config": "./conf/config.js",
