@@ -1,4 +1,4 @@
-# v1.6.0
+# v1.6.0 (Nov 8, 2019)
 
  * feat: Wired up live configuration changes.
    [(DAEMON-198)](https://jira.appcelerator.org/browse/DAEMON-198)
