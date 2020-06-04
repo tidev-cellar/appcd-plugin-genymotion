@@ -4,6 +4,12 @@ Genymotion service for the Appc Daemon.
 
 Report issues to [GitHub issues][2]. Official issue tracker in [JIRA][3].
 
+> Note: This appcd plugin has been deprecated and is no longer actively maintained. It has been
+> removed from the list of "default" appcd plugins.
+>
+> This plugin supports Appc Daemon plugin API version 1.x and 2.x which correlates to Appc Daemon
+> v1 through v4.
+
 ## Info
 
 The `info` service uses [genymotion.js](./src/genymotion.js) and [virtualbox.js]

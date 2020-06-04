@@ -1,6 +1,6 @@
 {
   "name": "@appcd/plugin-genymotion",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "Genymotion and VirtualBox service for the Appc Daemon.",
   "main": "./dist/index",
   "author": "Appcelerator, Inc. <npmjs@appcelerator.com>",
@@ -17,19 +17,19 @@
     "test": "gulp test"
   },
   "dependencies": {
-    "androidlib": "^4.0.3",
-    "gawk": "^4.7.0",
-    "source-map-support": "^0.5.16",
-    "xmldom": "^0.2.1"
+    "androidlib": "^4.1.0",
+    "gawk": "^4.7.1",
+    "source-map-support": "^0.5.19",
+    "xmldom": "^0.3.0"
   },
   "devDependencies": {
-    "appcd-gulp": "^2.3.1"
+    "appcd-gulp": "^3.0.0"
   },
   "homepage": "https://github.com/appcelerator/appc-daemon",
   "bugs": "https://github.com/appcelerator/appcd-plugin-genymotion/issues",
   "repository": "https://github.com/appcelerator/appcd-plugin-genymotion",
   "appcd": {
-    "apiVersion": "1.x",
+    "apiVersion": "1.x || 2.x",
     "config": "./conf/config.js",
     "name": "genymotion",
     "type": "external"
